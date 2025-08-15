@@ -1,0 +1,20 @@
+package yd.kingdom.heartAuction.command;
+
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import yd.kingdom.heartAuction.manager.GambleEggManager;
+
+public class EggBetCommand implements CommandExecutor {
+    private final GambleEggManager gm;
+    public EggBetCommand(GambleEggManager gm) { this.gm = gm; }
+
+    @Override public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+        if (!(sender instanceof Player p)) { sender.sendMessage("플레이어만"); return true; }
+        if (args.length != 1) { p.sendMessage("/달걀도박 <닭개수>"); return true; }
+        try { int guess = Integer.parseInt(args[0]); gm.run(p, guess); }
+        catch (Exception e) { p.sendMessage("숫자만!"); }
+        return true;
+    }
+}

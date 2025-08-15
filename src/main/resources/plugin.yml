@@ -1,0 +1,34 @@
+name: HeartAuction
+version: '1.0-SNAPSHOT'
+main: yd.kingdom.heartAuction.HeartAuction
+api-version: '1.21'
+commands:
+  운영자:
+    description: 지정 유저를 운영자로 설정/해제
+    usage: /운영자 <닉네임>
+    permission: heart.op
+  게임시작:
+    description: 게임을 시작하고 평화시간/경매 스케줄을 시작
+    usage: /게임시작
+    permission: heart.admin
+  미션지급:
+    description: (관리자/디버그) 랜덤 미션 지급
+    usage: /미션지급 [닉]
+  미션포기:
+    description: 다이아 1개 지불로 현재 미션 포기 후 새 미션 지급
+    usage: /미션포기
+  경매:
+    description: 현재 진행될 경매에 참여/입찰 대기 등록
+    usage: /경매
+  spawn:
+    description: 설정된 스폰으로 이동
+    usage: /spawn
+  꽃도박:
+    description: 꽃 도박 실행 /꽃도박 <꽃개수>
+    usage: /꽃도박 <개수>
+  달걀도박:
+    description: 달걀 도박 실행 /달걀도박 <닭개수>
+    usage: /달걀도박 <개수>
+permissions:
+  heart.op: { default: op }
+  heart.admin: { default: op }
