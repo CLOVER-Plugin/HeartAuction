@@ -55,7 +55,7 @@ public class GambleFlowerManager {
                 w.getBlockAt(minX+x, cy+1, minZ+z).setType(m);
                 count++;
             } else if (r < 0.7) {
-                w.getBlockAt(minX+x, cy+1, minZ+z).setType(Material.LEGACY_GRASS);
+                w.getBlockAt(minX+x, cy+1, minZ+z).setType(Material.SHORT_GRASS);
             }
         }
 
