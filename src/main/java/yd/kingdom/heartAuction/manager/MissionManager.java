@@ -55,9 +55,6 @@ public class MissionManager {
         // 7) 그림 1개 만들어오기 - 10개
         pool.put("CRAFT_PAINTING_1", new SimpleItemMission("그림 1개 만들어오기", Material.PAINTING, 1));
 
-        // 8) 운영자한테 애교 부리기 - 운영자 마음대로(최소 10): 태그 'AEGYO_OK' 부여 시 완료
-        pool.put("DO_AEGYO", new ScoreboardTagMission("운영자한테 애교 부리기 (관리자가 태그 AEGYO_OK 부여 시 완료)", "AEGYO_OK"));
-
         // 9) 먹을 것 5개(서로 다른 종류, 몬스터템 X) - 25개
         pool.put("HAS_5_DISTINCT_FOOD_NO_MONSTER", new UniquePredicateMission(
                 "먹을 것 5개(서로 다른 종류, 몬스터템 X)",
@@ -84,9 +81,6 @@ public class MissionManager {
 
         // 13) 조약돌 한 세트(64) 캐오기(심층암 X 표기는 안내용) - 20개
         pool.put("HAS_COBBLESTONE_64", new SimpleItemMission("조약돌 한 세트(64) 가져오기", Material.COBBLESTONE, 64));
-
-        // 14) 운영자한테 애교 부리기(중복 항목) - 같은 태그 사용
-        pool.put("DO_AEGYO_2", new ScoreboardTagMission("운영자한테 애교 부리기 (2)", "AEGYO_OK"));
 
         // 15) 쿠키 2개 만들기 - 30개
         pool.put("CRAFT_COOKIE_2", new SimpleItemMission("쿠키 2개 만들기", Material.COOKIE, 2));
