@@ -3,6 +3,7 @@ package yd.kingdom.heartAuction.manager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 import yd.kingdom.heartAuction.HeartAuction;
 import yd.kingdom.heartAuction.util.Items;
 import yd.kingdom.heartAuction.util.Tasker;
@@ -28,14 +29,19 @@ public class AuctionManager {
     public void beginPeaceAuctions(int peaceSeconds) {
         if (running.get()) return;
         running.set(true);
-        int gap = plugin.getConfig().getInt("auction-interval-seconds", 180);
-        int pre = plugin.getConfig().getInt("auction-pre-title-seconds", 30);
+        int gap = plugin.getConfig().getInt("auction-interval-seconds", 180);   // 경매 간격(초)
+        int pre = plugin.getConfig().getInt("auction-pre-title-seconds", 30);   // 시작 전 예고(초)
 
         long endAt = System.currentTimeMillis() + peaceSeconds * 1000L;
+
+        // 첫 경매: 게임 시작 후 (gap - pre)초에 scheduleOneAuction 호출 → pre초 뒤(= 정확히 gap초)에 시작
+        long initialDelay = Math.max(0, (gap - pre)) * 20L;
+        long period = gap * 20L;
+
         repeatTask = Tasker.runTimer(() -> {
             if (System.currentTimeMillis() >= endAt) { stopRepeat(); return; }
             scheduleOneAuction(pre);
-        }, 0L, gap * 20L);
+        }, initialDelay, period);
     }
 
     public void stopRepeat() { Tasker.cancel(repeatTask); repeatTask = -1; running.set(false); }
@@ -71,16 +77,31 @@ public class AuctionManager {
     }
 
     private void scheduleOneAuction(int preSeconds) {
-        if (current != null) return;
-        int amount = 1 + new Random().nextInt(5);
+        if (current != null) return; // 경매 중복 방지
+        int amount = 1 + new Random().nextInt(5); // 1~5개
         current = new AuctionRound(amount);
         var r = current;
 
+        // 참여자 대상 타이틀 예고
         Bukkit.getOnlinePlayers().forEach(p -> {
             if (!participants.contains(p.getUniqueId())) return;
-            p.sendTitle("§e경매 예고", "§f"+preSeconds+"초 후 경매가 시작됩니다.", 10, 40, 10);
+            p.sendTitle("§e경매 예고", "§f" + preSeconds + "초 후 경매가 시작됩니다.", 10, 40, 10);
         });
 
+        // 시작 3초 전부터 채팅 카운트다운 (요구사항대로 '경매 시작 전'에만 노출)
+        int before = Math.max(0, preSeconds - 3);
+        Tasker.runLater(() -> {
+            new BukkitRunnable() {
+                int left = 3;
+                @Override public void run() {
+                    if (left <= 0) { cancel(); return; }
+                    Bukkit.broadcastMessage("§7[경매] " + left + "초 후 경매가 시작됩니다. §f/경매 §7로 경매에 참여해주세요");
+                    left--;
+                }
+            }.runTaskTimer(plugin, 0L, 20L);
+        }, before * 20L);
+
+        // 정확히 preSeconds 후 경매 시작
         Tasker.runLater(r::start, preSeconds * 20L);
     }
 
@@ -95,22 +116,14 @@ public class AuctionManager {
         AuctionRound(int amount) { this.amount = amount; }
 
         void start() {
+            // 참가자 스냅샷
             for (UUID id : participants) awaiting.add(id);
             if (awaiting.isEmpty()) { current = null; return; }
 
-            Bukkit.broadcastMessage("§6[경매] 경매가 시작되었습니다! 이번 물품: §c체력증가 §ex"+amount);
-            Bukkit.broadcastMessage("§6[경매] §7채팅에 입찰 다이아 수를 적으세요. (1회만)");
+            Bukkit.broadcastMessage("§6[경매] 경매가 시작되었습니다! 이번 물품: §c체력증가 §ex" + amount);
+            Bukkit.broadcastMessage("§6[경매] §7채팅에 입찰 다이아 수를 적으세요. (1번만)");
 
-            // 3초 카운트다운 (자동 취소)
-            new org.bukkit.scheduler.BukkitRunnable(){
-                int left = 3;
-                @Override public void run(){
-                    if (left <= 0) { cancel(); return; }
-                    Bukkit.broadcastMessage("§7[경매] "+left+"초 후 시작... /경매로 참여");
-                    left--;
-                }
-            }.runTaskTimer(plugin, 0L, 20L);
-
+            // 30초 후 종료(혹은 조기 종료)
             taskId = Tasker.runLater(this::finishPhase, 30 * 20L);
         }
 

@@ -43,12 +43,11 @@ flower-gamble:
     x: 200
     y: 80
     z: 206      # 5x5 앞쪽 상자 위치
-  payout-chest-slot: 13
 
 egg-gamble:
   pit-origin:
     world: world
-    x: 220
+    x: 220 # 최소 좌표 (왼쪽 밑에 꼭지점 좌표?)
     y: 70
     z: 220
   size-x: 3
@@ -59,4 +58,3 @@ egg-gamble:
     x: 220
     y: 70
     z: 224
-  payout-chest-slot: 13
