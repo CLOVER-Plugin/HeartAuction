@@ -15,6 +15,8 @@ public class GameManager {
     private final AuctionManager auction;
     private final AtomicBoolean started = new AtomicBoolean(false);
 
+    private volatile long peaceEndAtMillis = 0L;
+
     public GameManager(HeartAuction plugin, PvpZoneManager pvp, AuctionManager auction) {
         this.plugin = plugin; this.pvp = pvp; this.auction = auction;
     }
@@ -41,6 +43,8 @@ public class GameManager {
         // 3) 평화시간 중 경매 스케줄 시작
         auction.beginPeaceAuctions(peaceMin * 60);
 
+        peaceEndAtMillis = System.currentTimeMillis() + peaceMin * 60_000L;
+
         // 4) 평화시간 종료 스케줄 -> PVP 시작/텔레포트/수축 시작
         Tasker.runLater(() -> {
             Bukkit.broadcastMessage("§c[알림] 평화시간 종료! 이제 PVP가 시작됩니다.");
@@ -52,6 +56,14 @@ public class GameManager {
             pvp.teleportAllIntoZone();
             // 수축 시작
             pvp.startShrinking();
+            peaceEndAtMillis = 0L;
         }, peaceMin * 20L * 60L);
+    }
+
+    public long getPeaceRemainingSeconds() {
+        long end = peaceEndAtMillis;
+        if (end <= 0) return 0L;
+        long sec = (end - System.currentTimeMillis()) / 1000L;
+        return Math.max(0L, sec);
     }
 }
