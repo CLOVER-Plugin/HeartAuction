@@ -58,10 +58,14 @@ public final class HeartAuction extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new DiamondOreGuard(), this);
 
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            new PeacePlaceholder(this).register();
-            getLogger().info("PlaceholderAPI hooked: %peace_time% registered.");
+            try {
+                new PeacePlaceholder(this).register();
+                getLogger().info("PlaceholderAPI hooked: %peace_time% placeholder registered successfully.");
+            } catch (Exception e) {
+                getLogger().warning("Failed to register PlaceholderAPI expansion: " + e.getMessage());
+            }
         } else {
-            getLogger().warning("PlaceholderAPI not found. %peace_time% is disabled.");
+            getLogger().info("PlaceholderAPI not found. %peace_time% placeholder is disabled.");
         }
 
         Tasker.init(this);

@@ -18,7 +18,7 @@ pvp-zone:
   center-x: 100.5
   center-y: 80.0
   center-z: 100.5
-  radius: 50          # 초기 반지름(블럭)
+  radius: 75          # 초기 반지름(블럭)
   shrink-every-seconds: 60   # 1분마다 1블럭씩 축소 (사용하지 않음)
   damage-check-ticks: 10     # 외곽(파티클 영역) 입장 시 10틱마다 반칸 피해 (사용하지 않음)
   final-radius: 5            # 최종 축소될 반지름

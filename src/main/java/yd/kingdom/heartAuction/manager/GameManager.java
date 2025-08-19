@@ -8,6 +8,7 @@ import yd.kingdom.heartAuction.HeartAuction;
 import yd.kingdom.heartAuction.util.Tasker;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class GameManager {
     private final HeartAuction plugin;
@@ -15,8 +16,7 @@ public class GameManager {
     private final AuctionManager auction;
     private final AtomicBoolean started = new AtomicBoolean(false);
     private final AtomicBoolean pvpStarted = new AtomicBoolean(false);
-
-    private volatile long peaceEndAtMillis = 0L;
+    private final AtomicLong peaceEndTime = new AtomicLong(0);
 
     public GameManager(HeartAuction plugin, PvpZoneManager pvp, AuctionManager auction) {
         this.plugin = plugin; this.pvp = pvp; this.auction = auction;
@@ -39,16 +39,18 @@ public class GameManager {
             w.setPVP(false);
             w.setGameRuleValue("keepInventory", "true");
         }
+        
+        // 평화시간 종료 시간 설정
+        long peaceEnd = System.currentTimeMillis() + (peaceMin * 60 * 1000L);
+        peaceEndTime.set(peaceEnd);
+        
         Bukkit.broadcastMessage("§a[안내] 지금부터 " + peaceMin + "분간 평화시간입니다! PVP 불가, 인벤세이브 ON");
 
         // 3) 평화시간 중 경매 스케줄 시작
         auction.beginPeaceAuctions(peaceMin * 60);
 
-        peaceEndAtMillis = System.currentTimeMillis() + peaceMin * 60_000L;
-
         // 4) 평화시간 종료 스케줄 -> PVP 시작/텔레포트/수축 시작
         Tasker.runLater(() -> {
-
             startPvpPhase();
         }, peaceMin * 20L * 60L);
     }
@@ -74,6 +76,9 @@ public class GameManager {
     private void startPvpPhase() {
         if (!pvpStarted.compareAndSet(false, true)) return;
         
+        // 평화시간 종료 시간 초기화
+        peaceEndTime.set(0);
+        
         Bukkit.broadcastMessage("§c[알림] 평화시간 종료! 이제 PVP가 시작됩니다.");
         for (World w : Bukkit.getWorlds()) {
             w.setPVP(true);
@@ -94,6 +99,7 @@ public class GameManager {
         // 게임 상태 초기화
         started.set(false);
         pvpStarted.set(false);
+        peaceEndTime.set(0);
         
         // 경매 중단
         auction.stopRepeat();
@@ -124,6 +130,24 @@ public class GameManager {
 
     public boolean isPvpStarted() {
         return pvpStarted.get();
+    }
 
+    /**
+     * PAPI에서 사용하는 메서드: 평화시간 남은 초 수 반환
+     */
+    public long getPeaceRemainingSeconds() {
+        if (!started.get() || pvpStarted.get()) {
+            return 0; // 게임이 시작되지 않았거나 PVP가 시작된 경우
+        }
+        
+        long remaining = peaceEndTime.get() - System.currentTimeMillis();
+        return Math.max(0, remaining / 1000); // 밀리초를 초로 변환
+    }
+
+    /**
+     * 평화시간이 진행 중인지 확인
+     */
+    public boolean isPeaceTime() {
+        return started.get() && !pvpStarted.get();
     }
 }
