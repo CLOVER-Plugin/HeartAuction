@@ -2,6 +2,8 @@ name: HeartAuction
 version: '1.0-SNAPSHOT'
 main: yd.kingdom.heartAuction.HeartAuction
 api-version: '1.21'
+depend: []
+softdepend: [PlaceholderAPI]
 commands:
   운영자:
     description: 지정 유저를 운영자로 설정/해제
@@ -33,12 +35,10 @@ commands:
     usage: /spawn
   꽃도박:
     description: 꽃 도박 실행 /꽃도박 <꽃개수>
-    usage: /꽃도박 <개수>
+    usage: /꽃도박 <꽃개수>
   달걀도박:
     description: 달걀 도박 실행 /달걀도박 <닭개수>
-    usage: /달걀도박 <개수>
+    usage: /달걀도박 <닭개수>
 permissions:
   heart.op: { default: op }
   heart.admin: { default: op }
-softdepend:
-  - PlaceholderAPI
