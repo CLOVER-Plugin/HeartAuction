@@ -16,27 +16,28 @@ public class PvpZoneManager {
     private final HeartAuction plugin;
     private final Random rnd = new Random();
 
-    private World world; private double cx, cy, cz; private int radius;
-    private int shrinkEvery; // sec
-    private int damageCheckTicks; // ticks
+    private World world; private double cx, cz; private double ringY;
+    private int radius;
+    private int shrinkEvery;       // seconds
+    private int damageCheckTicks;  // ticks
 
     private final AtomicInteger currentSafe = new AtomicInteger();
     private int shrinkTaskId = -1;
     private int wallTaskId = -1;
 
-    public PvpZoneManager(HeartAuction plugin) {
-        this.plugin = plugin; reload();
-    }
+    public PvpZoneManager(HeartAuction plugin) { this.plugin = plugin; reload(); }
 
     public void reload() {
         var c = plugin.getConfig();
         world = Bukkit.getWorld(c.getString("pvp-zone.world", "world"));
+        double cy = c.getDouble("pvp-zone.center-y", 0);
         cx = c.getDouble("pvp-zone.center-x");
-        cy = c.getDouble("pvp-zone.center-y");
         cz = c.getDouble("pvp-zone.center-z");
         radius = c.getInt("pvp-zone.radius", 50);
         shrinkEvery = c.getInt("pvp-zone.shrink-every-seconds", 60);
         damageCheckTicks = c.getInt("pvp-zone.damage-check-ticks", 10);
+        // 파티클 Y: 지정값이 있으면 사용, 없으면 중심 최고지대 + 2
+        ringY = cy > 0 ? cy : world.getHighestBlockYAt((int) Math.floor(cx), (int) Math.floor(cz)) + 2;
         currentSafe.set(radius);
     }
 
@@ -49,18 +50,25 @@ public class PvpZoneManager {
         }
     }
 
-    private Location pickRandomInside() {
+    private Location randomInside() {
         double r = radius * Math.sqrt(rnd.nextDouble());
         double t = rnd.nextDouble() * Math.PI * 2;
         double x = cx + r * Math.cos(t);
         double z = cz + r * Math.sin(t);
-        int y = world.getHighestBlockYAt((int)Math.floor(x), (int)Math.floor(z)) + 1;
+        int y = world.getHighestBlockYAt((int) Math.floor(x), (int) Math.floor(z)) + 1;
         return new Location(world, x + 0.5, y, z + 0.5);
+    }
+
+    public boolean isOutside(Location loc) {
+        if (loc.getWorld() == null || !loc.getWorld().equals(world)) return true;
+        double dx = loc.getX() - cx, dz = loc.getZ() - cz;
+        return (dx * dx + dz * dz) > (currentSafe.get() * currentSafe.get());
     }
 
     public void startShrinking() {
         stopTasks();
         currentSafe.set(radius);
+
 
         // 설정에서 최종 반지름과 축소 시간을 읽어옴
         int finalRadius = plugin.getConfig().getInt("pvp-zone.final-radius", 5);
@@ -82,6 +90,7 @@ public class PvpZoneManager {
                 Bukkit.broadcastMessage("§c[존] 최종 경기장이 완성되었습니다!");
             }
         }, 0L, shrinkInterval * 20L);
+
 
         // 벽 생성 작업을 별도로 실행 (블럭 변경이 많으므로)
         wallTaskId = Tasker.runTimer(() -> {

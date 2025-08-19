@@ -23,94 +23,77 @@ public class GambleFlowerManager {
 
     public GambleFlowerManager(HeartAuction plugin) {
         this.plugin = plugin;
-        bet = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "bet.yml"));
+        this.bet = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "bet.yml"));
     }
 
-    public void run(Player p, int guess) {
+    /** 인자 없이 실행: 상자 다이아(배팅액) × flower.<꽃개수> 배율 지급 */
+    public void run(Player p) {
         var c = plugin.getConfig();
-        World w = Bukkit.getWorld(c.getString("flower-gamble.center.world"));
+
+        String wName = c.getString("flower-gamble.center.world");
+        World w = Bukkit.getWorld(wName);
+        if (w == null) { p.sendMessage("§cflower-gamble.center.world 월드를 찾을 수 없습니다: " + wName); return; }
+
         int cx = c.getInt("flower-gamble.center.x");
         int cy = c.getInt("flower-gamble.center.y");
         int cz = c.getInt("flower-gamble.center.z");
         int size = c.getInt("flower-gamble.size", 5);
 
-        Location chestLoc = new Location(
-                Bukkit.getWorld(c.getString("flower-gamble.chest.world")),
+        String cwName = c.getString("flower-gamble.chest.world");
+        World cw = Bukkit.getWorld(cwName);
+        if (cw == null) { p.sendMessage("§cflower-gamble.chest.world 월드를 찾을 수 없습니다: " + cwName); return; }
+
+        Location chestLoc = new Location(cw,
                 c.getInt("flower-gamble.chest.x"),
                 c.getInt("flower-gamble.chest.y"),
-                c.getInt("flower-gamble.chest.z")
-        );
-        Chest chest = (Chest) chestLoc.getBlock().getState();
+                c.getInt("flower-gamble.chest.z"));
 
-        // 상자 다이아 총합
-        int diamonds = chest.getInventory().all(Material.DIAMOND).values()
+        var state = chestLoc.getBlock().getState();
+        if (!(state instanceof Chest chest)) {
+            p.sendMessage("§c설정된 위치에 §e상자§c가 없습니다. config.yml의 flower-gamble.chest를 확인하세요.");
+            return;
+        }
+
+        int stake = chest.getBlockInventory().all(Material.DIAMOND).values()
                 .stream().mapToInt(i -> i.getAmount()).sum();
-        chest.getInventory().remove(Material.DIAMOND);
-        if (diamonds <= 0) { p.sendMessage("§c상자에 다이아가 없습니다."); return; }
+        if (stake <= 0) { p.sendMessage("§c상자에 배팅할 다이아를 먼저 넣어주세요."); return; }
 
-        // 식생 생성
+        // 식생 생성 & 꽃 개수 집계
         Set<Material> flowers = flowerSet();
         int minX = cx - size / 2, minZ = cz - size / 2;
         int count = 0;
         for (int x = 0; x < size; x++) for (int z = 0; z < size; z++) {
-            // 기존 식생 제거 후 새로 배치
+            // 기존 식생 제거
             w.getBlockAt(minX + x, cy + 1, minZ + z).setType(Material.AIR);
+
+            // 1칸당 확률: 10% 꽃 / 60% 잔디 / 30% 빈칸
             double r = Math.random();
-            if (r < 0.2) {
-                Material m = flowers.stream().skip((int) (flowers.size() * Math.random()))
-                        .findFirst().orElse(Material.DANDELION);
+            if (r < 0.045) {
+                Material m = pickRandom(flowers);
                 w.getBlockAt(minX + x, cy + 1, minZ + z).setType(m);
                 count++;
-            } else if (r < 0.9) {
+            } else if (r < 0.70) {
                 w.getBlockAt(minX + x, cy + 1, minZ + z).setType(Material.SHORT_GRASS);
-            }
+            } // else: 그대로 AIR (빈칸)
         }
 
-        // 성공/실패 분기
-        if (guess != count) {
-            p.sendMessage("§c실패! 입력: " + guess + "개 " + " / 실제 꽃: " + count + "개");
-            Bukkit.getScheduler().runTaskLater(plugin, () ->
-                    clearVegetation(w, minX, cy, minZ, size), 20L * 5);
-            return;
-        }
-
-        // 성공: 보상 지급 후 '수령하면' 제거 (슬롯 비워지면 정리, 최대 60초 대기)
+        // 배율 적용 → 배팅액 제거 → 지급
         double mult = bet.getDouble("flower." + count, bet.getDouble("flower.default", 0.0));
-        int payout = (int) Math.floor(diamonds * mult);
-        depositDiamonds(chest, payout); // 0번 슬롯부터 채우기
-        p.sendMessage("§a정답! 꽃 " + count + "개 §7/ 배율 " + mult + " / 지급 " + payout + "개");
-        waitAndClearAfterLoot(chest, w, minX, cy, minZ, size);
+        int payout = (int) Math.floor(stake * mult);
+        chest.getBlockInventory().remove(Material.DIAMOND);
+        depositDiamonds(chest, payout);
+
+        p.sendMessage("§a꽃도박 결과: 꽃 §e" + count + "개§a / 배율 §e" + mult + "§a / 지급 §b" + payout + "개");
+
+        // ✅ 결과 출력 후 1초 뒤 판 리셋
+        Bukkit.getScheduler().runTaskLater(plugin, () ->
+                clearVegetation(w, minX, cy, minZ, size), 20L);
     }
 
-    private void depositDiamonds(Chest chest, int amount) {
-        var inv = chest.getBlockInventory();
-
-        // 1) 기존 다이아 스택 보충
-        for (int i = 0; i < inv.getSize() && amount > 0; i++) {
-            ItemStack it = inv.getItem(i);
-            if (it == null || it.getType() != Material.DIAMOND) continue;
-            int space = it.getMaxStackSize() - it.getAmount();
-            if (space <= 0) continue;
-            int add = Math.min(space, amount);
-            it.setAmount(it.getAmount() + add);
-            amount -= add;
-        }
-
-        // 2) 빈 슬롯부터 새 스택 채우기 (0번 슬롯부터)
-        for (int i = 0; i < inv.getSize() && amount > 0; i++) {
-            ItemStack it = inv.getItem(i);
-            if (it != null && it.getType() != Material.AIR) continue;
-            int add = Math.min(amount, Material.DIAMOND.getMaxStackSize());
-            inv.setItem(i, new ItemStack(Material.DIAMOND, add));
-            amount -= add;
-        }
-
-        // 3) 남으면 바닥에 드랍(안전장치)
-        while (amount > 0) {
-            int add = Math.min(amount, Material.DIAMOND.getMaxStackSize());
-            chest.getWorld().dropItem(chest.getLocation().add(0.5, 1.0, 0.5), new ItemStack(Material.DIAMOND, add));
-            amount -= add;
-        }
+    private Material pickRandom(Set<Material> set) {
+        int idx = (int) (Math.random() * set.size()), i = 0;
+        for (Material m : set) if (i++ == idx) return m;
+        return Material.DANDELION;
     }
 
     private Set<Material> flowerSet() {
@@ -123,27 +106,36 @@ public class GambleFlowerManager {
     }
 
     private void clearVegetation(World w, int minX, int cy, int minZ, int size) {
-        for (int x = 0; x < size; x++) for (int z = 0; z < size; z++) {
+        for (int x = 0; x < size; x++) for (int z = 0; z < size; z++)
             w.getBlockAt(minX + x, cy + 1, minZ + z).setType(Material.AIR);
-        }
     }
 
-    private void waitAndClearAfterLoot(Chest chest, World w, int minX, int cy, int minZ, int size) {
-        new BukkitRunnable() {
-            int seconds = 0;
-            @Override public void run() {
-                boolean hasDiamonds = false;
-                for (ItemStack it : chest.getBlockInventory().getContents()) {
-                    if (it != null && it.getType() == Material.DIAMOND && it.getAmount() > 0) {
-                        hasDiamonds = true; break;
-                    }
-                }
-                if (!hasDiamonds || seconds >= 60) { // 보상 수령 완료 또는 60초 타임아웃
-                    clearVegetation(w, minX, cy, minZ, size);
-                    cancel();
-                }
-                seconds++;
-            }
-        }.runTaskTimer(plugin, 20L, 20L);
+    /** 기존 스택 보충 → 빈칸 채우기 → 남으면 드랍 */
+    private void depositDiamonds(Chest chest, int amount) {
+        var inv = chest.getBlockInventory();
+        // 기존 스택 보충
+        for (int i = 0; i < inv.getSize() && amount > 0; i++) {
+            ItemStack it = inv.getItem(i);
+            if (it == null || it.getType() != Material.DIAMOND) continue;
+            int space = it.getMaxStackSize() - it.getAmount();
+            if (space <= 0) continue;
+            int add = Math.min(space, amount);
+            it.setAmount(it.getAmount() + add);
+            amount -= add;
+        }
+        // 빈 슬롯부터 채우기
+        for (int i = 0; i < inv.getSize() && amount > 0; i++) {
+            ItemStack it = inv.getItem(i);
+            if (it != null && it.getType() != Material.AIR) continue;
+            int add = Math.min(amount, Material.DIAMOND.getMaxStackSize());
+            inv.setItem(i, new ItemStack(Material.DIAMOND, add));
+            amount -= add;
+        }
+        // 남으면 드랍
+        while (amount > 0) {
+            int add = Math.min(amount, Material.DIAMOND.getMaxStackSize());
+            chest.getWorld().dropItem(chest.getLocation().add(0.5, 1.0, 0.5), new ItemStack(Material.DIAMOND, add));
+            amount -= add;
+        }
     }
 }

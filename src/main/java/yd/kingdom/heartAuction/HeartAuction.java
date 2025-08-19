@@ -3,10 +3,9 @@ package yd.kingdom.heartAuction;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import yd.kingdom.heartAuction.command.*;
-import yd.kingdom.heartAuction.listener.ChatListener;
-import yd.kingdom.heartAuction.listener.InteractListener;
-import yd.kingdom.heartAuction.listener.InventoryListener;
+import yd.kingdom.heartAuction.listener.*;
 import yd.kingdom.heartAuction.manager.*;
+import yd.kingdom.heartAuction.papi.PeacePlaceholder;
 import yd.kingdom.heartAuction.util.Tasker;
 
 public final class HeartAuction extends JavaPlugin {
@@ -30,14 +29,14 @@ public final class HeartAuction extends JavaPlugin {
         saveResource("bet.yml", false);
 
         // Managers
-        adminManager = new AdminManager(this);
+        adminManager   = new AdminManager(this);
         pvpZoneManager = new PvpZoneManager(this);
         auctionManager = new AuctionManager(this, pvpZoneManager);
         missionManager = new MissionManager(this);
-        shopManager = new ShopManager(this);
-        flowerManager = new GambleFlowerManager(this);
-        eggManager = new GambleEggManager(this);
-        gameManager = new GameManager(this, pvpZoneManager, auctionManager);
+        shopManager    = new ShopManager(this);
+        flowerManager  = new GambleFlowerManager(this);
+        eggManager     = new GambleEggManager(this);
+        gameManager    = new GameManager(this, pvpZoneManager, auctionManager);
 
         // Commands
         getCommand("운영자").setExecutor(new AdminCommand(adminManager));
@@ -52,9 +51,18 @@ public final class HeartAuction extends JavaPlugin {
         getCommand("달걀도박").setExecutor(new EggBetCommand(eggManager));
 
         // Listeners
-        Bukkit.getPluginManager().registerEvents(new ChatListener(auctionManager), this);
+        new AuctionChatListener(auctionManager);
+        new PvpZoneListener(pvpZoneManager, this);
         Bukkit.getPluginManager().registerEvents(new InteractListener(this, missionManager), this);
         Bukkit.getPluginManager().registerEvents(new InventoryListener(shopManager), this);
+        Bukkit.getPluginManager().registerEvents(new DiamondOreGuard(), this);
+
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new PeacePlaceholder(this).register();
+            getLogger().info("PlaceholderAPI hooked: %peace_time% registered.");
+        } else {
+            getLogger().warning("PlaceholderAPI not found. %peace_time% is disabled.");
+        }
 
         Tasker.init(this);
         getLogger().info("HeartAuction enabled.");

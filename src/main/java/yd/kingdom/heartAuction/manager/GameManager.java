@@ -16,6 +16,8 @@ public class GameManager {
     private final AtomicBoolean started = new AtomicBoolean(false);
     private final AtomicBoolean pvpStarted = new AtomicBoolean(false);
 
+    private volatile long peaceEndAtMillis = 0L;
+
     public GameManager(HeartAuction plugin, PvpZoneManager pvp, AuctionManager auction) {
         this.plugin = plugin; this.pvp = pvp; this.auction = auction;
     }
@@ -42,8 +44,11 @@ public class GameManager {
         // 3) 평화시간 중 경매 스케줄 시작
         auction.beginPeaceAuctions(peaceMin * 60);
 
+        peaceEndAtMillis = System.currentTimeMillis() + peaceMin * 60_000L;
+
         // 4) 평화시간 종료 스케줄 -> PVP 시작/텔레포트/수축 시작
         Tasker.runLater(() -> {
+
             startPvpPhase();
         }, peaceMin * 20L * 60L);
     }
@@ -119,5 +124,6 @@ public class GameManager {
 
     public boolean isPvpStarted() {
         return pvpStarted.get();
+
     }
 }

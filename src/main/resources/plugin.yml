@@ -40,3 +40,5 @@ commands:
 permissions:
   heart.op: { default: op }
   heart.admin: { default: op }
+softdepend:
+  - PlaceholderAPI
