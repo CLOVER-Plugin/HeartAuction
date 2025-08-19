@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class AuctionManager {
     private final HeartAuction plugin;
     private final PvpZoneManager pvp;
-    private final Set<UUID> participants = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> waitingRoom = ConcurrentHashMap.newKeySet();
 
     private final AtomicBoolean running = new AtomicBoolean(false);
     private int repeatTask = -1;
@@ -49,8 +49,8 @@ public class AuctionManager {
     public void shutdown() { stopRepeat(); }
 
     public void join(Player p) {
-        participants.add(p.getUniqueId());
-        p.sendMessage("§a[경매] 참여 대기 등록 완료! 시작 알림이 오면 채팅으로 한 번만 숫자를 입력하세요.");
+        waitingRoom.add(p.getUniqueId());
+        p.sendMessage("§a[경매] 등록 완료! 다음 경매 1회에만 참여합니다.");
     }
 
     public boolean isExpectingBid(UUID id) {
@@ -84,7 +84,7 @@ public class AuctionManager {
 
         // 참여자 대상 타이틀 예고
         Bukkit.getOnlinePlayers().forEach(p -> {
-            if (!participants.contains(p.getUniqueId())) return;
+            if (!waitingRoom.contains(p.getUniqueId())) return;
             p.sendTitle("§e경매 예고", "§f" + preSeconds + "초 후 경매가 시작됩니다.", 10, 40, 10);
         });
 
@@ -116,14 +116,13 @@ public class AuctionManager {
         AuctionRound(int amount) { this.amount = amount; }
 
         void start() {
-            // 참가자 스냅샷
-            for (UUID id : participants) awaiting.add(id);
+            awaiting.addAll(waitingRoom);
+            waitingRoom.clear();
             if (awaiting.isEmpty()) { current = null; return; }
 
             Bukkit.broadcastMessage("§6[경매] 경매가 시작되었습니다! 이번 물품: §c체력증가 §ex" + amount);
-            Bukkit.broadcastMessage("§6[경매] §7채팅에 입찰 다이아 수를 적으세요. (1번만)");
+            Bukkit.broadcastMessage("§6[경매] §7채팅에 입찰 다이아 수를 적으세요. (1회만)");
 
-            // 30초 후 종료(혹은 조기 종료)
             taskId = Tasker.runLater(this::finishPhase, 30 * 20L);
         }
 

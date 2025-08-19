@@ -10,11 +10,11 @@ public class EggBetCommand implements CommandExecutor {
     private final GambleEggManager gm;
     public EggBetCommand(GambleEggManager gm) { this.gm = gm; }
 
-    @Override public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-        if (!(sender instanceof Player p)) { sender.sendMessage("플레이어만"); return true; }
-        if (args.length != 1) { p.sendMessage("/달걀도박 <닭개수>"); return true; }
-        try { int guess = Integer.parseInt(args[0]); gm.run(p, guess); }
-        catch (Exception e) { p.sendMessage("숫자만!"); }
+    @Override
+    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+        if (!(sender instanceof Player p)) { sender.sendMessage("플레이어만 사용할 수 있습니다."); return true; }
+        // 인자 없이 바로 실행
+        gm.run(p);
         return true;
     }
 }

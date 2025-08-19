@@ -151,11 +151,12 @@ public class MissionManager {
     }
 
     private void complete(Player p, String key) {
-        Integer reward = rewards.getOrDefault(key, 1);
-        p.sendMessage("§b[미션] 완료! 보상으로 다이아 §e"+reward+"§b개 지급");
-        p.getInventory().addItem(new org.bukkit.inventory.ItemStack(Material.DIAMOND, reward));
+        MissionSpec spec = pool.get(key);
+        if (spec != null) spec.consume(p); // 아이템 제거
+        int reward = rewards.getOrDefault(key, 1);
+        p.sendMessage("§b[미션] 완료! 보상으로 다이아 §e" + reward + "§b개 지급");
+        p.getInventory().addItem(new ItemStack(Material.DIAMOND, reward));
         currentKey.remove(p.getUniqueId());
-        // 다음 미션 자동 지급
         giveRandom(p);
     }
 
@@ -166,6 +167,7 @@ public class MissionManager {
     interface MissionSpec {
         String title();
         boolean check(Player p);
+        default void consume(Player p) {}
     }
 
     // 단일 아이템 수량
@@ -174,6 +176,7 @@ public class MissionManager {
         SimpleItemMission(String title, Material mat, int amount) { this.title = title; this.mat = mat; this.amount = amount; }
         public String title() { return title; }
         public boolean check(Player p) { return Items.count(p, mat) >= amount; }
+        public void consume(Player p) { Items.takeItem(p, mat, amount); }
     }
 
     // 여러 재료(집합) 합계 수량
@@ -190,15 +193,27 @@ public class MissionManager {
             }
             return total >= amount;
         }
+        public void consume(Player p) { // 여러 재료 합쳐서 amount 만큼 깎기
+            int left = amount;
+            for (int i=0; i<p.getInventory().getSize() && left>0; i++) {
+                ItemStack it = p.getInventory().getItem(i);
+                if (it == null || !mats.contains(it.getType())) continue;
+                int take = Math.min(left, it.getAmount());
+                it.setAmount(it.getAmount()-take);
+                if (it.getAmount() <= 0) p.getInventory().setItem(i, null);
+                left -= take;
+            }
+            p.updateInventory();
+        }
     }
 
     // 조건을 만족하는 "서로 다른" 아이템 종류 개수
     static class UniquePredicateMission implements MissionSpec {
-        final String title; final Predicate<Material> filter; final int distinctNeeded;
-        UniquePredicateMission(String title, Predicate<Material> filter, int distinctNeeded) { this.title = title; this.filter = filter; this.distinctNeeded = distinctNeeded; }
+        final String title; final java.util.function.Predicate<Material> filter; final int distinctNeeded;
+        UniquePredicateMission(String title, java.util.function.Predicate<Material> filter, int distinctNeeded) { this.title = title; this.filter = filter; this.distinctNeeded = distinctNeeded; }
         public String title() { return title; }
         public boolean check(Player p) {
-            Set<Material> seen = new HashSet<>();
+            java.util.Set<Material> seen = new java.util.HashSet<>();
             for (ItemStack it : p.getInventory().getContents()) {
                 if (it == null) continue;
                 Material m = it.getType();
@@ -206,6 +221,20 @@ public class MissionManager {
                 if (seen.size() >= distinctNeeded) return true;
             }
             return seen.size() >= distinctNeeded;
+        }
+        public void consume(Player p) { // 서로 다른 종류 1개씩 소모
+            java.util.Set<Material> removed = new java.util.HashSet<>();
+            for (int i=0; i<p.getInventory().getSize() && removed.size()<distinctNeeded; i++) {
+                ItemStack it = p.getInventory().getItem(i);
+                if (it == null) continue;
+                Material m = it.getType();
+                if (filter.test(m) && !removed.contains(m) && it.getAmount()>0) {
+                    it.setAmount(it.getAmount()-1);
+                    if (it.getAmount()<=0) p.getInventory().setItem(i, null);
+                    removed.add(m);
+                }
+            }
+            p.updateInventory();
         }
     }
 
@@ -215,7 +244,7 @@ public class MissionManager {
         UniqueInSetMission(String title, Set<Material> set, int distinctNeeded) { this.title = title; this.set = set; this.distinctNeeded = distinctNeeded; }
         public String title() { return title; }
         public boolean check(Player p) {
-            Set<Material> seen = new HashSet<>();
+            java.util.Set<Material> seen = new java.util.HashSet<>();
             for (ItemStack it : p.getInventory().getContents()) {
                 if (it == null) continue;
                 Material m = it.getType();
@@ -224,6 +253,20 @@ public class MissionManager {
             }
             return seen.size() >= distinctNeeded;
         }
+        public void consume(Player p) { // 서로 다른 set 아이템 1개씩 소모
+            java.util.Set<Material> removed = new java.util.HashSet<>();
+            for (int i=0; i<p.getInventory().getSize() && removed.size()<distinctNeeded; i++) {
+                ItemStack it = p.getInventory().getItem(i);
+                if (it == null) continue;
+                Material m = it.getType();
+                if (set.contains(m) && !removed.contains(m) && it.getAmount()>0) {
+                    it.setAmount(it.getAmount()-1);
+                    if (it.getAmount()<=0) p.getInventory().setItem(i, null);
+                    removed.add(m);
+                }
+            }
+            p.updateInventory();
+        }
     }
 
     // 운영자 수동 승인용: 플레이어 엔티티 태그로 판정
@@ -231,14 +274,8 @@ public class MissionManager {
         final String title; final String tag;
         ScoreboardTagMission(String title, String tag) { this.title = title; this.tag = tag; }
         public String title() { return title; }
-        public boolean check(Player p) {
-            if (p.getScoreboardTags().contains(tag)) {
-                // 한 번 완료되면 태그 제거(재사용 방지)
-                p.removeScoreboardTag(tag);
-                return true;
-            }
-            return false;
-        }
+        public boolean check(Player p) { if (p.getScoreboardTags().contains(tag)) { p.removeScoreboardTag(tag); return true; } return false; }
+        // consume 없음
     }
 
     /* ===== 유틸 ===== */
