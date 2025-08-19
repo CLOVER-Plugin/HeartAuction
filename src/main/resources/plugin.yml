@@ -11,6 +11,14 @@ commands:
     description: 게임을 시작하고 평화시간/경매 스케줄을 시작
     usage: /게임시작
     permission: heart.admin
+  게임종료:
+    description: 게임을 즉시 종료하고 모든 설정을 초기화
+    usage: /게임종료
+    permission: heart.admin
+  pvp시작:
+    description: 평화시간을 건너뛰고 즉시 PVP를 시작
+    usage: /pvp시작
+    permission: heart.admin
   미션지급:
     description: (관리자/디버그) 랜덤 미션 지급
     usage: /미션지급 [닉]

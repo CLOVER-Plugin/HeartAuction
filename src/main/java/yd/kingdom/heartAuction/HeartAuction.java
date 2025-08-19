@@ -42,6 +42,8 @@ public final class HeartAuction extends JavaPlugin {
         // Commands
         getCommand("운영자").setExecutor(new AdminCommand(adminManager));
         getCommand("게임시작").setExecutor(new GameStartCommand(gameManager));
+        getCommand("게임종료").setExecutor(new GameEndCommand(gameManager));
+        getCommand("pvp시작").setExecutor(new PvpStartCommand(gameManager));
         getCommand("미션지급").setExecutor(new MissionGiveCommand(missionManager));
         getCommand("미션포기").setExecutor(new MissionForfeitCommand(missionManager));
         getCommand("경매").setExecutor(new AuctionJoinCommand(auctionManager));
