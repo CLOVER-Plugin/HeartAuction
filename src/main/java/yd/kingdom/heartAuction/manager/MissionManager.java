@@ -23,16 +23,16 @@ public class MissionManager {
 
     public MissionManager(HeartAuction plugin) {
         this.plugin = plugin;
-        // 1) 양털 5개 가져오기 (아무 색) - 10개
+        // 1) 양털 5개 가져오기 - 10개
         pool.put("HAS_WOOL_ANY_5", new SumOfMaterialsMission("양털 5개 가져오기", matsEndingWith("_WOOL"), 5));
 
-        // 2) 건초더미 하나 만들어오기 - 20개
+        // 2) 건초더미 하나 만들어오기 - 15개
         pool.put("CRAFT_HAY_BLOCK_1", new SimpleItemMission("건초더미 1개 만들어오기", Material.HAY_BLOCK, 1));
 
         // 3) 썩은고기 5개 가져오기 - 15개
         pool.put("HAS_ROTTEN_FLESH_5", new SimpleItemMission("썩은고기 5개 가져오기", Material.ROTTEN_FLESH, 5));
 
-        // 4) 침대 2개 만들기(색 무관) - 15개
+        // 4) 침대 2개 만들기(색 무관) - 10개
         pool.put("CRAFT_BED_ANY_2", new SumOfMaterialsMission("침대 2개 만들기", matsEndingWith("_BED"), 2));
 
         // 5) 씨앗 15개 가져오기 - 10개
@@ -55,6 +55,13 @@ public class MissionManager {
         // 7) 그림 1개 만들어오기 - 10개
         pool.put("CRAFT_PAINTING_1", new SimpleItemMission("그림 1개 만들어오기", Material.PAINTING, 1));
 
+        // 8) 보트 3종류 만들기 - 15개  (BOAT/RAFT 계열 허용)
+        pool.put("CRAFT_3_DISTINCT_BOATS", new UniquePredicateMission(
+                "보트 3종류 만들기",
+                m -> m.name().endsWith("_BOAT") || m.name().endsWith("_RAFT"),
+                3
+        ));
+
         // 9) 먹을 것 5개(서로 다른 종류, 몬스터템 X) - 25개
         pool.put("HAS_5_DISTINCT_FOOD_NO_MONSTER", new UniquePredicateMission(
                 "먹을 것 5개(서로 다른 종류, 몬스터템 X)",
@@ -62,15 +69,15 @@ public class MissionManager {
                 5
         ));
 
-        // 10) 몬스터 관련 아이템 3개(중복 X) - 20개
-        pool.put("HAS_3_DISTINCT_MONSTER_DROPS", new UniqueInSetMission(
-                "몬스터 관련 아이템 3개(중복 X)",
+        // 10) 몬스터 관련 아이템 2개(중복 X) - 10개
+        pool.put("HAS_2_DISTINCT_MONSTER_DROPS", new UniqueInSetMission(
+                "몬스터 관련 아이템 2개(중복 X)",
                 new HashSet<>(Arrays.asList(
                         Material.ROTTEN_FLESH, Material.BONE, Material.STRING, Material.GUNPOWDER,
                         Material.SPIDER_EYE, Material.SLIME_BALL, Material.ENDER_PEARL,
                         Material.PHANTOM_MEMBRANE, Material.BLAZE_ROD, Material.GHAST_TEAR
                 )),
-                3
+                2
         ));
 
         // 11) 황금사과 1개 만들어오기 - 30개
@@ -79,8 +86,11 @@ public class MissionManager {
         // 12) 참나무 묘목 30개 가져오기 - 20개
         pool.put("HAS_OAK_SAPLING_30", new SimpleItemMission("참나무 묘목 30개 가져오기", Material.OAK_SAPLING, 30));
 
-        // 13) 조약돌 한 세트(64) 캐오기(심층암 X 표기는 안내용) - 20개
+        // 13) 조약돌 한 세트(64) 가져오기(심층암 X) - 10개
         pool.put("HAS_COBBLESTONE_64", new SimpleItemMission("조약돌 한 세트(64) 가져오기", Material.COBBLESTONE, 64));
+
+        // 14) 랜턴 5개 만들기 - 10개
+        pool.put("CRAFT_LANTERN_5", new SimpleItemMission("랜턴 5개 만들기", Material.LANTERN, 5));
 
         // 15) 쿠키 2개 만들기 - 30개
         pool.put("CRAFT_COOKIE_2", new SimpleItemMission("쿠키 2개 만들기", Material.COOKIE, 2));
@@ -88,11 +98,17 @@ public class MissionManager {
         // 16) 아이템 액자 5개 만들기 - 15개
         pool.put("CRAFT_ITEM_FRAME_5", new SimpleItemMission("아이템 액자 5개 만들기", Material.ITEM_FRAME, 5));
 
-        // 17) 화로 10개 만들어오기 - 15개
+        // 17) 화로 10개 만들어오기 - 10개
         pool.put("CRAFT_FURNACE_10", new SimpleItemMission("화로 10개 만들어오기", Material.FURNACE, 10));
 
         // 18) 잭 오 랜턴 5개 만들어오기 - 30개
         pool.put("CRAFT_JACK_O_LANTERN_5", new SimpleItemMission("잭 오 랜턴 5개 만들어오기", Material.JACK_O_LANTERN, 5));
+
+        // 19) 참나무잎 40개 캐오기 - 15개
+        pool.put("HAS_OAK_LEAVES_40", new SimpleItemMission("참나무잎 40개 캐오기", Material.OAK_LEAVES, 40));
+
+        // 20) 책 5개 만들어오기 - 15개
+        pool.put("CRAFT_BOOK_5", new SimpleItemMission("책 5개 만들어오기", Material.BOOK, 5));
 
         // reward.yml 로드
         File f = new File(plugin.getDataFolder(), "reward.yml");
@@ -105,23 +121,25 @@ public class MissionManager {
 
         // reward.yml에 없을 때 기본 보상(요청 수치) 채워주기
         putDefaultReward("HAS_WOOL_ANY_5", 10);
-        putDefaultReward("CRAFT_HAY_BLOCK_1", 20);
+        putDefaultReward("CRAFT_HAY_BLOCK_1", 15);
         putDefaultReward("HAS_ROTTEN_FLESH_5", 15);
-        putDefaultReward("CRAFT_BED_ANY_2", 15);
+        putDefaultReward("CRAFT_BED_ANY_2", 10);
         putDefaultReward("HAS_SEEDS_ANY_15", 10);
         putDefaultReward("HAS_5_DISTINCT_DYES", 30);
         putDefaultReward("CRAFT_PAINTING_1", 10);
-        putDefaultReward("DO_AEGYO", 10);      // 최소 10
+        putDefaultReward("CRAFT_3_DISTINCT_BOATS", 15);
         putDefaultReward("HAS_5_DISTINCT_FOOD_NO_MONSTER", 25);
-        putDefaultReward("HAS_3_DISTINCT_MONSTER_DROPS", 20);
+        putDefaultReward("HAS_2_DISTINCT_MONSTER_DROPS", 10);
         putDefaultReward("CRAFT_GOLDEN_APPLE_1", 30);
         putDefaultReward("HAS_OAK_SAPLING_30", 20);
-        putDefaultReward("HAS_COBBLESTONE_64", 20);
-        putDefaultReward("DO_AEGYO_2", 10);    // 최소 10
+        putDefaultReward("HAS_COBBLESTONE_64", 10);
+        putDefaultReward("CRAFT_LANTERN_5", 10);
         putDefaultReward("CRAFT_COOKIE_2", 30);
         putDefaultReward("CRAFT_ITEM_FRAME_5", 15);
-        putDefaultReward("CRAFT_FURNACE_10", 15);
+        putDefaultReward("CRAFT_FURNACE_10", 10);
         putDefaultReward("CRAFT_JACK_O_LANTERN_5", 30);
+        putDefaultReward("HAS_OAK_LEAVES_40", 15);
+        putDefaultReward("CRAFT_BOOK_5", 15);
 
         // 액션바 갱신 + 자동 클리어
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
