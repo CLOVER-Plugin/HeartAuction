@@ -1,0 +1,61 @@
+# 게임 기본 설정
+peace-minutes: 30                  # 평화시간(분)
+auction-interval-seconds: 180      # 평화시간 중 경매 간격(초)
+auction-pre-title-seconds: 30      # 각 경매 시작 전 타이틀 예고(초)
+
+# 스폰 좌표
+spawn:
+  world: world
+  x: 0.5
+  y: 100.0
+  z: 0.5
+  yaw: 0.0
+  pitch: 0.0
+
+# PVP 존 (원형)
+pvp-zone:
+  world: world
+  center-x: 100.5
+  center-y: 80.0
+  center-z: 100.5
+  radius: 75          # 초기 반지름(블럭)
+  shrink-every-seconds: 60   # 1분마다 1블럭씩 축소 (사용하지 않음)
+  damage-check-ticks: 10     # 외곽(파티클 영역) 입장 시 10틱마다 반칸 피해 (사용하지 않음)
+  final-radius: 5            # 최종 축소될 반지름
+  shrink-duration: 600       # 축소에 걸리는 시간(초) - 10분
+
+# 상점 NPC 이름 및 위치(선택)
+shop-npc:
+  name: "아이템 상점"
+  world: world
+  x: 105.5
+  y: 80.0
+  z: 100.5
+
+# 도박 설정
+flower-gamble:
+  center:
+    world: world
+    x: 200
+    y: 80
+    z: 200
+  size: 5       # 5x5
+  chest:
+    world: world
+    y: 80
+    z: 206      # 5x5 앞쪽 상자 위치
+
+egg-gamble:
+  pit-origin:
+    world: world
+    x: 220 # 최소 좌표 (왼쪽 밑에 꼭지점 좌표?)
+    y: 70
+    z: 220
+  size-x: 3
+  size-y: 5
+  size-z: 3
+  chest:
+    world: world
+    x: 220
+    y: 70
+    z: 224
