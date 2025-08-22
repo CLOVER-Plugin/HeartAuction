@@ -56,6 +56,8 @@ public final class HeartAuction extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new InteractListener(this, missionManager), this);
         Bukkit.getPluginManager().registerEvents(new InventoryListener(shopManager), this);
         Bukkit.getPluginManager().registerEvents(new DiamondOreGuard(), this);
+        Bukkit.getPluginManager().registerEvents(new CraftBlockListener(shopManager), this);
+        Bukkit.getPluginManager().registerEvents(new PeaceFallDamageListener(gameManager), this);
 
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             try {
@@ -76,7 +78,7 @@ public final class HeartAuction extends JavaPlugin {
     @Override
     public void onDisable() {
         auctionManager.shutdown();
-        pvpZoneManager.shutdown();
+        pvpZoneManager.forceClearOnDisable();
         Tasker.shutdown();
     }
 

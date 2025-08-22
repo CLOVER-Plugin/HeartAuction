@@ -248,9 +248,14 @@ public class PvpZoneManager {
     }
 
     public void clearAllWalls() {
-        // 배치 제거: 매 틱마다 일정량의 블록만 제거하여 서버 렉/타임아웃 방지
+        // 플러그인이 꺼지는 중이거나 이미 비활성화면 즉시 정리로 우회
+        if (!HeartAuction.get().isEnabled()) {
+            clearAllWallsNow(false);
+            return;
+        }
         if (clearTaskId != -1) return; // 이미 진행 중
-        final int blocksPerTick = 2000; // 상황에 맞게 조정 가능
+
+        final int blocksPerTick = 2000;
 
         clearTaskId = Tasker.runTimer(() -> {
             int removed = 0;
@@ -274,6 +279,35 @@ public class PvpZoneManager {
                 Bukkit.broadcastMessage("§7[존] 모든 PVP 존 벽이 제거되었습니다.");
             }
         }, 0L, 1L);
+    }
+
+    // PvpZoneManager.java (클래스 안 아무 위치, 추천: clearAllWalls() 아래)
+
+    public void clearAllWallsNow(boolean announce) {
+        if (world == null) return;
+        // 스케줄러 작업 중지 후 동기 즉시 정리
+        stopTasks();
+
+        for (String key : wallBlocks) {
+            String[] s = key.split(",", 3);
+            int bx = Integer.parseInt(s[0]);
+            int by = Integer.parseInt(s[1]);
+            int bz = Integer.parseInt(s[2]);
+            Block block = world.getBlockAt(bx, by, bz);
+            if (block.getType() == Material.WHITE_CONCRETE) {
+                block.setType(Material.AIR, false);
+            }
+        }
+        wallBlocks.clear();
+
+        if (announce) {
+            Bukkit.broadcastMessage("§7[존] 모든 PVP 존 벽이 제거되었습니다.");
+        }
+    }
+
+    /** onDisable 전용: 스케줄 금지 + 즉시 정리 */
+    public void forceClearOnDisable() {
+        clearAllWallsNow(false);
     }
 
     public boolean isInsideSafeZone(Location loc) {

@@ -3,7 +3,9 @@ package yd.kingdom.heartAuction.manager;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import yd.kingdom.heartAuction.HeartAuction;
 import yd.kingdom.heartAuction.util.Tasker;
 
@@ -84,6 +86,7 @@ public class GameManager {
             w.setPVP(true);
             w.setGameRuleValue("keepInventory", "false");
         }
+        stripSpecificItemsOnPvpStart();
         // PVP 존으로 TP
         pvp.teleportAllIntoZone();
         // 흰색 콘크리트 벽으로 경기장 축소 시작
@@ -149,5 +152,38 @@ public class GameManager {
      */
     public boolean isPeaceTime() {
         return started.get() && !pvpStarted.get();
+    }
+
+    private void stripSpecificItemsOnPvpStart() {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            // 운영자도 포함해서 제거하려면 아래 조건을 제거하세요.
+            // if (plugin.admins().isAdmin(p.getUniqueId())) continue;
+
+            var inv = p.getInventory();
+
+            // 메인 인벤토리/핫바 전체 검사
+            for (int i = 0; i < inv.getSize(); i++) {
+                ItemStack it = inv.getItem(i);
+                if (shouldRemove(it)) inv.setItem(i, null);
+            }
+
+            // 보조손(오프핸드)도 검사
+            ItemStack off = inv.getItemInOffHand();
+            if (shouldRemove(off)) inv.setItemInOffHand(null);
+
+            p.updateInventory();
+        }
+    }
+
+    private boolean shouldRemove(ItemStack it) {
+        if (it == null) return false;
+        switch (it.getType()) {
+            case IRON_PICKAXE:
+            case IRON_SWORD:
+                // 내구성(UNBREAKING) 레벨이 '정확히 1'인 것만 제거
+                return it.getEnchantmentLevel(Enchantment.UNBREAKING) == 1;
+            default:
+                return false;
+        }
     }
 }
