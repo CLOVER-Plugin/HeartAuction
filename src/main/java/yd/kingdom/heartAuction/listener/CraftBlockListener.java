@@ -9,10 +9,17 @@ import org.bukkit.inventory.BrewerInventory;
 import org.bukkit.inventory.ItemStack;
 import yd.kingdom.heartAuction.manager.ShopManager;
 
+import java.util.EnumSet;
 import java.util.Set;
 
 public class CraftBlockListener implements Listener {
     private final ShopManager shop;
+    private static final Set<Material> EXTRA_BANNED = EnumSet.of(
+            Material.DIAMOND_HELMET,
+            Material.DIAMOND_CHESTPLATE,
+            Material.DIAMOND_LEGGINGS,
+            Material.DIAMOND_BOOTS
+    );
 
     public CraftBlockListener(ShopManager shop) {
         this.shop = shop;
@@ -20,8 +27,8 @@ public class CraftBlockListener implements Listener {
 
     private boolean isBanned(Material type) {
         if (type == null) return false;
-        Set<Material> banned = shop.getRegisteredItems(); // 상점 등록 아이템 집합
-        return banned.contains(type);
+        Set<Material> banned = shop.getRegisteredItems(); // 상점 등록 아이템
+        return banned.contains(type) || EXTRA_BANNED.contains(type); // + 다이아 갑옷 세트
     }
 
     /* 1) 작업대/손제작 미리보기 단계에서 결과 제거 */
